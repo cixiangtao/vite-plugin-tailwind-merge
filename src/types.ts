@@ -3,17 +3,26 @@ import type { SourceMap } from "magic-string";
 
 export type DynamicClassHandling = "skip" | "wrap";
 
+export interface RuntimeMergeImport {
+  /** Module specifier that exports the runtime merge function. */
+  module: string;
+  /** Named export to import, or `default` for a default export. @defaultValue `twMerge` */
+  exportName?: string;
+}
+
 export interface TransformTailwindClassesOptions {
-  /** JSX attribute names to inspect. */
+  /** JSX attribute names to merge explicitly and inside JSX spreads. */
   attributes?: readonly string[];
-  /** Function calls whose dynamic results should be merged. */
+  /** @deprecated Dynamic coverage no longer depends on function names. */
   functions?: readonly string[];
-  /** How to handle class expressions that cannot be evaluated at build time. */
+  /** Whether every non-static class value and JSX spread receives runtime coverage. */
   dynamic?: DynamicClassHandling;
-  /** Additional function names that already perform Tailwind conflict resolution. */
+  /** @deprecated Existing merge calls are safely covered again instead of guessed by name. */
   mergeFunctions?: readonly string[];
   /** Custom merge implementation, such as one created by `extendTailwindMerge`. */
   merge?: (...classLists: string[]) => string;
+  /** Runtime import used for dynamic class values and JSX spreads. */
+  runtimeMerge?: RuntimeMergeImport;
 }
 
 export interface ViteTailwindMergePluginOptions extends TransformTailwindClassesOptions {

@@ -12,7 +12,16 @@ try {
   const entry = join(directory, "entry.tsx");
   await writeFile(
     entry,
-    'export const element = <div className="flex grid px-2 px-4">content</div>;',
+    `export const StaticElement = () => (
+  <div className="flex grid px-2 px-4">content</div>
+);
+
+export const DynamicElement = ({ className, props }) => (
+  <>
+    <div className={className}>dynamic</div>
+    <div {...props}>spread</div>
+  </>
+);`,
   );
 
   const result = await build({
@@ -23,7 +32,7 @@ try {
       minify: false,
       write: false,
       rollupOptions: {
-        external: [/^react(?:\/|$)/u],
+        external: [/^react(?:\/|$)/u, /^tailwind-merge$/u],
       },
       lib: {
         entry,
@@ -39,8 +48,13 @@ try {
     .map(({ code: chunkCode }) => chunkCode)
     .join("\n");
 
-  if (!code.includes('className: "grid px-4"') || code.includes("flex grid")) {
-    throw new Error("Vite build did not contain the expected merged class names");
+  if (
+    !code.includes('className: "grid px-4"') ||
+    code.includes("flex grid") ||
+    !code.includes("Proxy") ||
+    !code.includes("WeakMap")
+  ) {
+    throw new Error("Vite build did not contain complete static and runtime class coverage");
   }
 } finally {
   await rm(directory, { force: true, recursive: true });
