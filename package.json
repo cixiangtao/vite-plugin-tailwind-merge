@@ -44,7 +44,7 @@
     "build": "tsdown",
     "check": "pnpm lint && pnpm type-check && pnpm test && pnpm build && pnpm check:dist && pnpm check:vite && pnpm check:package",
     "check:dist": "node scripts/check-dist.mjs",
-    "check:package": "npm pack --dry-run --ignore-scripts",
+    "check:package": "node scripts/check-package.mjs",
     "check:vite": "node scripts/check-vite.mjs",
     "dev": "tsdown --watch",
     "format": "oxfmt .",
