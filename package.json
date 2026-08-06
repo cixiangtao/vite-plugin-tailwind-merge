@@ -72,7 +72,7 @@
     "vitest": "^4.1.10"
   },
   "peerDependencies": {
-    "tailwind-merge": "^3.0.0",
+    "tailwind-merge": "^2.6.0 || ^3.0.0",
     "vite": ">=5.0.0"
   },
   "engines": {
