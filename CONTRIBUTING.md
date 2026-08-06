@@ -6,8 +6,11 @@ Thanks for helping improve `vite-plugin-tailwind-merge`.
 
 Requirements:
 
-- Node.js `^20.19.0 || >=22.12.0`
+- Node.js `^22.18.0 || >=24.11.0` for the repository build toolchain
 - pnpm `10.34.5`
+
+The published plugin itself supports Node.js `^20.19.0 || >=22.12.0`; the newer development
+requirement comes from the current `tsdown` release.
 
 ```sh
 corepack enable
