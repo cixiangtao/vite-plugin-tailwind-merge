@@ -1,0 +1,73 @@
+{
+  "name": "vite-plugin-tailwind-merge",
+  "version": "0.0.0",
+  "description": "Automatically merge conflicting Tailwind CSS classes in Vite builds.",
+  "keywords": [
+    "className",
+    "oxc",
+    "tailwind-merge",
+    "tailwindcss",
+    "vite"
+  ],
+  "license": "MIT",
+  "author": "cixiangtao",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "check": "pnpm lint && pnpm type-check && pnpm test && pnpm build && pnpm check:dist && pnpm check:package",
+    "check:dist": "node scripts/check-dist.mjs",
+    "check:package": "npm pack --dry-run --ignore-scripts",
+    "dev": "tsdown --watch",
+    "format": "oxfmt .",
+    "format:check": "oxfmt . --check",
+    "lint": "oxlint . && pnpm format:check",
+    "lint:fix": "oxlint . --fix && pnpm format",
+    "prepack": "pnpm check",
+    "test": "vitest run",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rollup/pluginutils": "^5.4.0",
+    "magic-string": "^1.1.0",
+    "oxc-parser": "^0.143.0"
+  },
+  "devDependencies": {
+    "@oxc-project/types": "^0.143.0",
+    "@types/node": "^26.1.2",
+    "oxfmt": "^0.62.0",
+    "oxlint": "^1.77.0",
+    "tailwind-merge": "^3.6.0",
+    "tsdown": "^0.22.14",
+    "typescript": "^6.0.3",
+    "vite": "^8.2.0",
+    "vitest": "^4.1.10"
+  },
+  "peerDependencies": {
+    "tailwind-merge": "^3.0.0",
+    "vite": ">=5.0.0"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "packageManager": "pnpm@10.34.5"
+}
