@@ -1,29 +1,29 @@
-name: Feature request
-description: Propose a focused capability or framework integration.
+name: Feature request / 功能建议
+description: Propose a focused capability or integration. / 提出边界明确的能力或集成建议。
 title: "[Feature]: "
 labels: [enhancement]
 body:
   - type: textarea
     id: problem
     attributes:
-      label: Problem
-      description: What limitation or workflow problem should this solve?
+      label: Problem / 问题
+      description: What limitation or workflow problem should this solve? / 希望解决什么限制或工作流问题？
     validations:
       required: true
   - type: textarea
     id: proposal
     attributes:
-      label: Proposed solution
+      label: Proposed solution / 建议方案
     validations:
       required: true
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives considered
+      label: Alternatives considered / 考虑过的替代方案
   - type: checkboxes
     id: scope
     attributes:
-      label: Scope check
+      label: Scope check / 范围确认
       options:
-        - label: This proposal fits the Vite JSX/TSX plugin scope or explains a deliberate expansion.
+        - label: This proposal fits the Vite JSX/TSX scope or explains a deliberate expansion. / 此建议符合 Vite JSX/TSX 范围，或已解释为何需要扩展边界。
           required: true

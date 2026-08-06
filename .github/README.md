@@ -1,9 +1,19 @@
 # vite-plugin-tailwind-merge
 
+English | [简体中文](./README.zh-CN.md)
+
 [![CI](https://github.com/cixiangtao/vite-plugin-tailwind-merge/actions/workflows/ci.yml/badge.svg)](https://github.com/cixiangtao/vite-plugin-tailwind-merge/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/vite-plugin-tailwind-merge.svg)](https://www.npmjs.com/package/vite-plugin-tailwind-merge)
 
-Automatically resolve conflicting Tailwind CSS classes across React-compatible JSX and TSX.
+Automatically apply `tailwind-merge` to React-compatible JSX/TSX in Vite—without wrapping every
+`className` in `twMerge()`.
+
+Static class strings are resolved during Vite transforms. Dynamic class values, function-valued
+class props, and JSX spreads use a runtime fallback by default, covering supported class sources
+without helper-name heuristics.
+
+The contract is deliberately narrow: matching JSX/TSX modules, configured class attributes, and
+valid class values. The plugin does not generate CSS, hash class names, or provide style isolation.
 
 ```tsx
 // input
@@ -13,27 +23,37 @@ Automatically resolve conflicting Tailwind CSS classes across React-compatible J
 <div className="grid px-4" />
 ```
 
-Static class strings are merged during Vite transforms with zero application runtime cost. Every
-other explicit `className` value and every JSX spread receives a runtime merge adapter by default.
-Expression syntax, variable names, and helper function names never decide whether coverage applies.
+## Why this plugin
+
+Class names reach JSX through literals, variables, CSS Modules, composition helpers, callbacks,
+and spread props. Requiring every path to remember a manual `twMerge()` call makes conflict
+resolution a convention that can be skipped.
+
+This plugin puts that decision at the Vite JSX transform boundary:
+
+- static class strings are merged before application code is emitted;
+- dynamic configured attributes receive a runtime class-value adapter;
+- every JSX spread receives a runtime props adapter because it may contain a configured class
+  attribute;
+- expression syntax and helper function names do not decide whether a supported path is covered.
 
 ## Installation
 
 > [!IMPORTANT]
 > Install `tailwind-merge` directly in the application package that owns the Vite build. It is a
-> required peer dependency and, with the default dynamic coverage, is also imported by generated
+> required peer dependency and, with the default dynamic coverage, is imported by generated
 > application code. This plugin intentionally does not bundle it.
 
 Choose the `tailwind-merge` major that matches the application's Tailwind CSS version:
 
 | Tailwind CSS | `tailwind-merge` | Status    |
 | ------------ | ---------------- | --------- |
-| 3.0–3.4      | 2.6.x            | Supported |
-| 4.0–4.3      | 3.x              | Supported |
+| 3.0–3.4      | `^2.6.0`         | Supported |
+| 4.0–4.3      | `^3.0.0`         | Supported |
 
-Using the wrong major can silently produce incorrect conflict resolution. The plugin does not infer
-the Tailwind CSS version: it uses the directly installed `tailwind-merge` package for both
-build-time and runtime merging.
+The plugin does not read or compile Tailwind CSS. Merge-engine compatibility comes from the
+directly installed `tailwind-merge` package, so the wrong major can silently resolve conflicts
+incorrectly.
 
 ### Tailwind CSS 4
 
@@ -67,9 +87,9 @@ npm install tailwind-merge@^2.6
 npm install --save-dev vite-plugin-tailwind-merge
 ```
 
-Do not install only `vite-plugin-tailwind-merge` or rely on automatic peer installation. Static
-classes need `tailwind-merge` while Vite runs the plugin, and dynamic class values and JSX spreads
-generate an application-side import from `tailwind-merge`.
+The safe default is to keep `tailwind-merge` in application `dependencies` and this plugin in
+`devDependencies`. A project that deliberately uses `dynamic: "skip"` needs the merge engine only
+while Vite runs, but the default mode generates an application-side import.
 
 In a pnpm workspace, install both packages into the application workspace rather than only the
 workspace root:
@@ -80,10 +100,10 @@ pnpm --filter <app-package> add tailwind-merge@^3
 pnpm --filter <app-package> add -D vite-plugin-tailwind-merge
 ```
 
-If Vite reports `Cannot resolve "tailwind-merge"`, first confirm that it appears in that
-application's own `package.json` under `dependencies`, with the correct major version.
+If Vite reports `Cannot resolve "tailwind-merge"`, first confirm that the dependency appears in the
+application package's own `package.json` with the correct major version.
 
-## Vite
+## Quick start
 
 ```ts
 import tailwindMerge from "vite-plugin-tailwind-merge";
@@ -94,55 +114,75 @@ export default defineConfig({
 });
 ```
 
-No JSX helper imports or manual `twMerge()` calls are required:
+No JSX helper imports or manual merge calls are required for supported paths:
 
 ```tsx
 <div className="flex grid" />
 <div className={classes} />
 <div className={styles.root} />
+<div className={cx("flex", classes)} />
 <div {...props} />
 ```
 
-## Coverage guarantee
+The plugin runs with `enforce: "pre"`, while matching code is still available as JSX/TSX.
 
-With the default `dynamic: "wrap"`, every matching React-compatible JSX/TSX module follows these
-rules:
+## JSX coverage contract
 
-1. Every configured JSX attribute, `className` by default, is merged at build time or passed through
-   the runtime value adapter.
-2. Every JSX spread is passed through the runtime props adapter because it may contain `className`.
-3. Unsupported class value shapes are preserved rather than guessed by function or variable name.
-4. Invalid valueless attributes such as `<div className />` fail the transform instead of being
-   silently ignored.
+With the default `dynamic: "wrap"`, a path is covered when all of these conditions hold:
 
-The supported value contract is a `tailwind-merge` class value—strings, nested string arrays and
-falsy empty values—plus synchronous functions that return those values. Function-valued class
-props, such as React Router's `NavLink` resolver, keep their `this`, arguments, properties and a
-stable wrapper identity within the transformed module.
+1. The Vite file passes the plugin's `include` and `exclude` filters.
+2. The class source is still represented as a JSX attribute or JSX spread when the plugin runs.
+3. The explicit attribute name appears in `attributes` (`className` by default), or the source is a
+   JSX spread that may contain one of those attributes.
+4. The runtime value is a supported `tailwind-merge` class value or a synchronous function that
+   returns one.
 
-| JSX input                                   | Coverage      | Merge phase |
-| ------------------------------------------- | ------------- | ----------- |
-| `className="flex grid"`                     | Supported     | Build time  |
-| `className={"flex " + "grid"}`              | Supported     | Build time  |
-| `className={classes}`                       | Supported     | Runtime     |
-| `className={styles.root}`                   | Supported     | Runtime     |
-| `className={cx("flex", classes)}`           | Supported     | Runtime     |
-| `className={getClassName(props)}`           | Supported     | Runtime     |
-| `className={active ? "flex" : "grid"}`      | Supported     | Runtime     |
-| `className={({ isActive }) => "flex grid"}` | Supported     | Runtime     |
-| `<div {...props} />`                        | Supported     | Runtime     |
-| `<div {...getProps()} />`                   | Supported     | Runtime     |
-| `<div {...a} className={value} {...b} />`   | Supported     | Both        |
-| `<div className />`                         | Invalid input | Build error |
-| `React.createElement("div", { className })` | Not supported | —           |
-| Vue/Svelte/Astro native templates           | Not supported | —           |
+Static folding covers string literals, expression string literals, template literals without
+expressions, and `+` expressions whose operands can both be folded to strings.
 
-Only own enumerable properties participate in JSX spreads, matching normal JSX spread behavior.
-Multiple spreads and explicit attributes keep their original source order and override semantics.
+| JSX input                                   | Result                 | Merge phase |
+| ------------------------------------------- | ---------------------- | ----------- |
+| `className="flex grid"`                     | Merged                 | Build time  |
+| `className={"flex " + "grid"}`              | Merged                 | Build time  |
+| `className={classes}`                       | Merged if string/array | Runtime     |
+| `className={styles.root}`                   | Merged if string/array | Runtime     |
+| `className={cx("flex", classes)}`           | Merged if string/array | Runtime     |
+| `className={getClassName(props)}`           | Merged if string/array | Runtime     |
+| `className={active ? "flex" : "grid"}`      | Merged if string/array | Runtime     |
+| `className={({ isActive }) => "flex grid"}` | Return value merged    | Runtime     |
+| `className={["flex", "grid"]}`              | Merged                 | Runtime     |
+| `className={false}`                         | Preserved              | Runtime     |
+| `<div {...props} />`                        | `className` merged     | Runtime     |
+| `<div {...getProps()} />`                   | `className` merged     | Runtime     |
+| `<div {...a} className={value} {...b} />`   | Source order preserved | Both        |
+| `<div className />`                         | Build error            | —           |
+| `React.createElement("div", { className })` | Not transformed        | —           |
+| Vue/Svelte/Astro native templates           | Not transformed        | —           |
 
-## Runtime coverage
+Unsupported runtime values are preserved rather than guessed. Invalid configured attributes, such
+as `<div className />`, fail the transform instead of silently bypassing the contract.
 
-All non-static values are covered without inspecting the expression:
+### Function-valued class props
+
+Synchronous functions that return supported class values are wrapped with a `Proxy`. Calls retain
+their `this` value, arguments, and property access. The same source function receives a stable
+wrapper within one transformed module.
+
+The wrapper is not reference-equal to the original function, and asynchronous functions are
+outside the supported class-value contract.
+
+### JSX spreads
+
+Every JSX spread is wrapped in the default mode, even when the object turns out not to contain a
+configured class attribute. The adapter reads properties lazily, so getters and side-effecting
+spread expressions retain normal evaluation timing. Multiple spreads and explicit attributes keep
+their original source order and override semantics.
+
+Only the properties that normal JSX spread lowering enumerates participate in the result.
+
+## Runtime behavior
+
+Dynamic values are wrapped without inspecting the expression's name or syntax:
 
 ```tsx
 // input
@@ -156,59 +196,59 @@ All non-static values are covered without inspecting the expression:
 <div className={mergeClassValue(cx("flex", "grid"))} />
 ```
 
-Spreads receive the same guarantee:
+Spreads receive the same configured-attribute handling:
 
 ```tsx
 // input
 <div {...props} />
 
 // conceptual output
-<div {...mergeClassNameProps(props)} />
+<div {...mergeConfiguredClassProps(props)} />
 ```
 
-The spread adapter reads properties lazily so getters, side-effecting expressions and multiple
-spreads preserve their evaluation order. Dynamic coverage can be explicitly disabled when a
-project accepts static-only behavior and wants no application runtime import:
+A transformed module that contains only static configured attributes and no JSX spreads adds no
+application-side merge import or runtime helper. A module with a dynamic configured attribute or
+spread imports the configured runtime merge function and injects helpers that use `Proxy`,
+`WeakMap`, and `Reflect`.
+
+Projects that accept static-only coverage can disable runtime wrapping:
 
 ```ts
 tailwindMerge({ dynamic: "skip" });
 ```
 
-`dynamic: "skip"` intentionally opts out of the complete coverage guarantee: static strings are
-still merged, while dynamic attributes and JSX spreads remain unchanged.
+`dynamic: "skip"` keeps build-time static folding but leaves dynamic attributes and JSX spreads
+unchanged.
 
-## Framework support
-
-The complete coverage guarantee currently applies to React-compatible JSX/TSX semantics. Native
-framework templates require dedicated parsers and are tracked separately.
-
-| Framework or syntax | Status                                  | Current scope                          |
-| ------------------- | --------------------------------------- | -------------------------------------- |
-| React JSX/TSX       | Supported; Vite integration verified    | `className` and JSX spreads            |
-| Preact JSX/TSX      | Syntax-compatible; verification planned | `className`, or configured `class`     |
-| Solid JSX/TSX       | Syntax-compatible; verification planned | Framework reactivity not yet verified  |
-| Qwik JSX/TSX        | Syntax-compatible; verification planned | Resumability not yet verified          |
-| Vue JSX/TSX         | Syntax-compatible; verification planned | Object-style `class` is not supported  |
-| Vue SFC templates   | Planned                                 | Requires the Vue SFC/compiler AST      |
-| Svelte components   | Planned                                 | Requires the Svelte compiler AST       |
-| Astro components    | Planned                                 | Requires the Astro compiler AST        |
-| MDX                 | Under consideration                     | Requires an MDX-aware parser           |
-| Angular templates   | Not planned                             | Outside the current Vite JSX/TSX scope |
-
-JSX frameworks that use `class` can configure the exact attribute set:
+## Options
 
 ```ts
 tailwindMerge({
-  attributes: ["class", "className"],
+  attributes: ["className"],
+  dynamic: "wrap",
+  include: /\.[jt]sx$/,
+  exclude: /node_modules/,
 });
 ```
 
-The configured array replaces the default attribute set. An empty array disables both explicit
-attribute and spread transformations.
+| Option           | Default                                               | Behavior                                                                                          |
+| ---------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `attributes`     | `["className"]`                                       | Replaces the configured JSX attribute set. `[]` disables explicit attributes and spread handling. |
+| `dynamic`        | `"wrap"`                                              | `"wrap"` adds runtime adapters; `"skip"` limits the plugin to static folding.                     |
+| `include`        | `.[cm]?[jt]sx?` modules                               | Replaces the default include filter.                                                              |
+| `exclude`        | `node_modules` and `.d.ts`                            | Replaces the default exclude filter; preserve exclusions you still need.                          |
+| `merge`          | `twMerge` from `tailwind-merge`                       | Build-time merge function for static strings.                                                     |
+| `runtimeMerge`   | `{ module: "tailwind-merge", exportName: "twMerge" }` | Import used by transformed application modules.                                                   |
+| `functions`      | Deprecated                                            | Retained for type compatibility; no longer affects coverage.                                      |
+| `mergeFunctions` | Deprecated                                            | Retained for type compatibility; no longer affects coverage.                                      |
+
+`include` and `exclude` are Vite/Rollup filter patterns. Supplying either option replaces its
+corresponding default rather than extending it. In particular, a custom `exclude` can put
+`node_modules` back into scope.
 
 ## Custom Tailwind Merge configuration
 
-Static and runtime merging must use the same custom rules. Export the configured merge function
+Static and runtime merging should use the same custom rules. Export a configured merge function
 from an application module:
 
 ```ts
@@ -224,8 +264,7 @@ export const merge = extendTailwindMerge({
 });
 ```
 
-Then use the function directly at build time and tell transformed modules where to import it at
-runtime:
+Use that function at build time and tell transformed modules where to import it at runtime:
 
 ```ts
 // vite.config.ts
@@ -247,64 +286,94 @@ export default defineConfig({
 });
 ```
 
-`merge` and `runtimeMerge` must be configured together whenever runtime coverage is needed. This
-prevents static and dynamic class values from silently using different conflict rules. Use
-`exportName: "default"` for a default export.
+When runtime coverage is needed, `merge` and `runtimeMerge` must be configured together. The
+plugin verifies that both are present, but the application is responsible for ensuring they use
+the same conflict rules. Set `exportName: "default"` for a default export.
 
-## Options
+## Public API
+
+The package exports:
+
+- the Vite plugin as both the default export and named `tailwindMerge` export;
+- `transformTailwindClasses` for direct source transformation;
+- public option and result types;
+- ESM and CommonJS builds, declarations, and Source Maps.
+
+## Compatibility
+
+| Surface                     | Supported or verified range                                 |
+| --------------------------- | ----------------------------------------------------------- |
+| Node.js                     | `^20.19.0 \|\| >=22.12.0`                                   |
+| Vite peer dependency        | `>=5.0.0`                                                   |
+| Vite CI matrix              | Major versions 5, 6, 7, and 8                               |
+| Tailwind CSS 3 merge engine | `tailwind-merge` `^2.6.0`; CI verifies 2.6.1                |
+| Tailwind CSS 4 merge engine | `tailwind-merge` `^3.0.0`; development currently uses 3.6.0 |
+
+The open-ended Vite peer range permits future Vite majors, but only Vite 5–8 are currently covered
+by this repository's build matrix.
+
+### Framework and syntax status
+
+The current implementation parses JavaScript/TypeScript modules with OXC and applies
+React-compatible JSX spread semantics. Syntax compatibility alone is not a framework integration
+guarantee.
+
+| Framework or syntax      | Status                                          | Current boundary                                                                                          |
+| ------------------------ | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| React-compatible JSX/TSX | Supported contract                              | Vite 5–8 build transform verified; React plugin, HMR, SSR, and RSC are not separately integration-tested. |
+| Preact JSX/TSX           | Syntax-compatible; runtime semantics unverified | `className`, or configured `class`.                                                                       |
+| Solid JSX/TSX            | Syntax-compatible; runtime semantics unverified | Framework reactivity and spread behavior are unverified.                                                  |
+| Qwik JSX/TSX             | Syntax-compatible; runtime semantics unverified | Resumability behavior is unverified.                                                                      |
+| Vue JSX/TSX              | Syntax-compatible; runtime semantics unverified | Object-style `class` is outside the supported value contract.                                             |
+| Vue SFC templates        | Not supported                                   | Would require a Vue compiler adapter.                                                                     |
+| Svelte components        | Not supported                                   | Would require a Svelte compiler adapter.                                                                  |
+| Astro components         | Not supported                                   | Would require an Astro compiler adapter.                                                                  |
+| MDX                      | Not supported                                   | The default filter and parser path do not accept raw MDX.                                                 |
+| Angular templates        | Not supported                                   | Outside the current Vite JSX/TSX scope.                                                                   |
+
+JSX syntaxes that use `class` can replace the configured attribute set:
 
 ```ts
 tailwindMerge({
-  attributes: ["className"],
-  dynamic: "wrap",
-  include: /\.[jt]sx$/,
-  exclude: /node_modules/,
+  attributes: ["class", "className"],
 });
 ```
 
-`attributes`, `include` and `exclude` replace their corresponding defaults. The legacy `functions`
-and `mergeFunctions` options are deprecated and no longer affect coverage.
-
 ## Explicit boundaries
 
-- The plugin merges class strings; it does not generate CSS, hash class names or provide style
-  isolation.
-- It does not read Tailwind configuration. Extended conflict rules require matching `merge` and
-  `runtimeMerge` configuration.
-- It transforms JSX attributes and JSX spreads, not `createElement`, `jsx`, nested object protocols
-  such as `slotProps`, or framework-native templates.
-- Vue object-style class values and framework-specific reactive/resumable spread semantics are not
-  part of the current React-compatible guarantee.
-- Files excluded by the Vite filter, including `node_modules` by default, are not transformed.
-- Runtime adapters add application code for dynamic values and spreads. Reducing that cost is a
-  future optimization; it never gates whether supported syntax is covered.
+- The plugin merges class values; it does not generate CSS, read Tailwind configuration, hash
+  class names, or provide style isolation.
+- It transforms JSX attributes and JSX spreads only while those constructs remain in the source.
+  It does not transform `React.createElement`, `jsx`/`_jsx`, `h`, nested object protocols such as
+  `slotProps`, or framework-native templates.
+- Vue object-style class values and framework-specific reactive or resumable spread semantics are
+  outside the supported contract.
+- Files excluded by the Vite filter are not transformed. OXC parse errors in matching files fail
+  the build.
+- Every spread is wrapped in default mode because it may contain a configured class attribute.
+  Dynamic attributes and spreads add application code and require modern `Proxy`, `WeakMap`, and
+  `Reflect` support.
+- A wrapped function retains call behavior but is not reference-equal to its original function.
+- Reducing runtime helper cost is a future optimization; performance never decides whether a path
+  inside the supported contract is covered.
 
-## 中文说明
+## Troubleshooting
 
-### 安装注意
+### Vite cannot resolve `tailwind-merge`
 
-必须在实际执行 Vite 构建的应用 package 中直接安装 `tailwind-merge`，不要只安装插件，也不要
-依赖包管理器自动补全 peer dependency。插件本身在构建期需要它；默认动态覆盖还会在业务产物中
-生成对 `tailwind-merge` 的导入。
+Install it directly in the application workspace and use the major that matches Tailwind CSS. Do
+not rely on a workspace-root install or automatic peer installation.
 
-- Tailwind CSS 3.0–3.4：安装 `tailwind-merge@^2.6`。
-- Tailwind CSS 4.0–4.3：安装 `tailwind-merge@^3`。
-- `tailwind-merge` 应放在应用的 `dependencies`，插件放在 `devDependencies`。
-- pnpm workspace 中应安装到具体应用 workspace，而不只是仓库根目录。
+### Custom utilities merge incorrectly
 
-插件不会自动判断 Tailwind CSS 主版本。版本装错时构建不一定报错，但类名冲突结果可能不正确。
+The plugin does not read `tailwind.config.*` or CSS theme definitions. Configure
+`extendTailwindMerge`, then provide matching `merge` and `runtimeMerge` options.
 
-插件当前的完整覆盖规则是：静态 JSX 类名在构建期合并；其他显式 `className` 表达式全部进入
-运行时 value adapter；所有 JSX spread 全部进入运行时 props adapter。变量、CSS Modules、函数
-别名、任意函数调用和函数型 `className` 都不会再因为启发式判断而漏掉。
+### A class source is unchanged
 
-“完整覆盖”严格限定于通过 Vite 文件过滤器的 React-compatible JSX/TSX、合法 class value 以及
-返回 class value 的同步函数。Vue/Svelte/Astro 原生模板、`createElement` 调用和 Vue 对象式
-`class` 不属于当前支持范围。
-
-插件使用 `oxc-parser` 解析 JSX/TSX AST，再通过 `magic-string` 生成转换结果和 Source Map。
-Tailwind CSS 3.0–3.4 搭配 `tailwind-merge` 2.6.x；Tailwind CSS 4.0–4.3 搭配
-`tailwind-merge` 3.x。
+Check the JSX coverage contract first: file filters, transform order, configured attribute names,
+value shape, and whether the source is still JSX when this plugin runs. Framework-native templates
+and already-lowered element factory calls are intentionally out of scope.
 
 ## Development and support
 
@@ -314,9 +383,11 @@ pnpm install
 pnpm check
 ```
 
-- Read the [contribution guide](https://github.com/cixiangtao/vite-plugin-tailwind-merge/blob/main/CONTRIBUTING.md) before opening a pull request.
-- Use [GitHub issues](https://github.com/cixiangtao/vite-plugin-tailwind-merge/issues) for reproducible bugs and focused feature proposals.
-- Report vulnerabilities privately through the repository's [Security page](https://github.com/cixiangtao/vite-plugin-tailwind-merge/security).
+- Read the [contribution guide](../CONTRIBUTING.md) before opening a pull request.
+- Use [GitHub issues](https://github.com/cixiangtao/vite-plugin-tailwind-merge/issues) for
+  reproducible bugs and focused feature proposals.
+- Report vulnerabilities privately through the repository's
+  [Security page](https://github.com/cixiangtao/vite-plugin-tailwind-merge/security).
 
 ## License
 

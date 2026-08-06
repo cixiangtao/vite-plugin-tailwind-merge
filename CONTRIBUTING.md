@@ -1,5 +1,7 @@
 # Contributing
 
+English | [简体中文](./CONTRIBUTING.zh-CN.md)
+
 Thanks for helping improve `vite-plugin-tailwind-merge`.
 
 ## Development setup
@@ -19,7 +21,19 @@ pnpm check
 ```
 
 `pnpm check` runs formatting, linting, type checking, tests, the package build, ESM/CommonJS smoke
-tests, and an npm package dry run.
+tests, a Vite build check, and real npm tarball inspection.
+
+## Documentation languages
+
+English is the primary maintenance language. Simplified Chinese documents mirror the same public
+behavior and support boundaries.
+
+- Update both `.github/README.md` and `.github/README.zh-CN.md` when behavior, options,
+  installation, compatibility, or explicit boundaries change.
+- Keep the root `README.md` compact because npm publishes it. Update it when installation or
+  release-status guidance changes.
+- Update the matching `*.zh-CN.md` community document when changing contribution, security, or
+  conduct policy.
 
 ## Pull requests
 

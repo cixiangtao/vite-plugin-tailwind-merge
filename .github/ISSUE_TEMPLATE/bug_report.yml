@@ -1,55 +1,55 @@
-name: Bug report
-description: Report reproducible incorrect behavior in the plugin.
+name: Bug report / Bug 报告
+description: Report reproducible incorrect behavior. / 报告可复现的错误行为。
 title: "[Bug]: "
 labels: [bug]
 body:
   - type: markdown
     attributes:
-      value: Thanks for taking the time to report a problem.
+      value: Thanks for taking the time to report a problem. / 感谢你花时间报告问题。
   - type: input
     id: version
     attributes:
-      label: Plugin version
-      placeholder: 0.1.0
+      label: Plugin version / 插件版本
+      placeholder: 0.x.y or commit SHA
     validations:
       required: true
   - type: input
     id: environment
     attributes:
-      label: Environment
-      description: Include Node.js, Vite, Tailwind CSS, and tailwind-merge versions.
+      label: Environment / 运行环境
+      description: Include Node.js, Vite, Tailwind CSS, and tailwind-merge versions. / 请提供 Node.js、Vite、Tailwind CSS 和 tailwind-merge 的版本。
     validations:
       required: true
   - type: textarea
     id: reproduction
     attributes:
-      label: Minimal reproduction
-      description: Link to a repository or provide the smallest source and Vite configuration.
+      label: Minimal reproduction / 最小复现
+      description: Link to a repository or provide the smallest source and Vite configuration. / 请提供复现仓库或最小源码与 Vite 配置。
     validations:
       required: true
   - type: textarea
     id: expected
     attributes:
-      label: Expected behavior
+      label: Expected behavior / 预期行为
     validations:
       required: true
   - type: textarea
     id: actual
     attributes:
-      label: Actual behavior
+      label: Actual behavior / 实际行为
     validations:
       required: true
   - type: textarea
     id: logs
     attributes:
-      label: Relevant logs
+      label: Relevant logs / 相关日志
       render: shell
   - type: checkboxes
     id: checks
     attributes:
-      label: Checklist
+      label: Checklist / 检查清单
       options:
-        - label: I searched existing issues for this problem.
+        - label: I searched existing issues for this problem. / 我已搜索现有 Issue。
           required: true
-        - label: This report does not contain a security vulnerability.
+        - label: This report does not contain a security vulnerability. / 此报告不包含安全漏洞。
           required: true

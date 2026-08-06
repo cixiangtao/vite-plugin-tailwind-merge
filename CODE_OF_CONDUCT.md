@@ -1,5 +1,7 @@
 # Code of Conduct
 
+English | [简体中文](./CODE_OF_CONDUCT.zh-CN.md)
+
 ## Our commitment
 
 We are committed to making participation in this project respectful, welcoming, and free from
@@ -26,9 +28,13 @@ community.
 
 ## Reporting and enforcement
 
-Report conduct concerns privately using the contact information on the
-[maintainer's GitHub profile](https://github.com/cixiangtao). Do not put sensitive reports in a
-public issue.
+For conduct concerns involving GitHub-hosted content, use that content's **Report content** menu.
+Choose **Report to repository admins** when GitHub offers it; otherwise choose **Report abuse to
+GitHub Support**. See GitHub's
+[reporting guidance](https://docs.github.com/en/communities/maintaining-your-safety-on-github/reporting-abuse-or-spam).
+
+The project does not currently publish another private maintainer contact. Do not disclose
+sensitive details in a public issue.
 
 The maintainer may edit or remove contributions, lock discussions, issue warnings, or temporarily
 or permanently restrict participation when necessary. Reports will be considered in good faith
