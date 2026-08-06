@@ -1,6 +1,6 @@
 {
   "name": "vite-plugin-tailwind-merge",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Automatically merge conflicting Tailwind CSS classes in Vite builds.",
   "keywords": [
     "className",
@@ -9,8 +9,16 @@
     "tailwindcss",
     "vite"
   ],
+  "homepage": "https://github.com/cixiangtao/vite-plugin-tailwind-merge#readme",
+  "bugs": {
+    "url": "https://github.com/cixiangtao/vite-plugin-tailwind-merge/issues"
+  },
   "license": "MIT",
   "author": "cixiangtao",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cixiangtao/vite-plugin-tailwind-merge.git"
+  },
   "files": [
     "dist",
     "README.md"
