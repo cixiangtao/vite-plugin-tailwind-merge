@@ -1,0 +1,26 @@
+# Dependencies and package-manager stores
+node_modules/
+.pnpm-store/
+
+# Build and test output
+dist/
+coverage/
+.vite/
+*.tsbuildinfo
+*.tgz
+
+# Logs
+*.log
+pnpm-debug.log*
+npm-debug.log*
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Editors and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
