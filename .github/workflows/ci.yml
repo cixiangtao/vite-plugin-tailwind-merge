@@ -30,6 +30,14 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Run quality gate
         run: pnpm check
+      - name: Verify Tailwind CSS 3 compatibility
+        run: |
+          pnpm add --save-dev tailwind-merge@2.6.1 --lockfile=false --ignore-scripts
+          pnpm type-check
+          pnpm test
+          pnpm build
+          pnpm check:dist
+          pnpm check:vite
 
   compatibility:
     name: Vite ${{ matrix.vite }}
