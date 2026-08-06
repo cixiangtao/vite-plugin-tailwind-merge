@@ -1,5 +1,8 @@
 # vite-plugin-tailwind-merge
 
+[![CI](https://github.com/cixiangtao/vite-plugin-tailwind-merge/actions/workflows/ci.yml/badge.svg)](https://github.com/cixiangtao/vite-plugin-tailwind-merge/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/vite-plugin-tailwind-merge.svg)](https://www.npmjs.com/package/vite-plugin-tailwind-merge)
+
 Automatically resolve conflicting Tailwind CSS classes before framework transforms.
 
 ```tsx
@@ -12,6 +15,8 @@ Automatically resolve conflicting Tailwind CSS classes before framework transfor
 
 Static class strings are merged at build time with zero runtime cost. Supported dynamic class
 compositions are wrapped in `twMerge()` automatically.
+
+Requires Node.js `^20.19.0 || >=22.12.0`, Vite 5–8, and `tailwind-merge` 3.x.
 
 ## Install
 
@@ -123,6 +128,18 @@ the plugin will leave existing merge calls untouched.
 当前已验证 Vite 8 下的 React JSX/TSX 语法转换。Preact、Solid、Qwik 和 Vue JSX/TSX 在语法层面
 兼容，后续会补充框架集成测试；Vue SFC、Svelte 和 Astro 的原生模板支持列入计划，需要分别接入
 对应的模板编译器。
+
+## Development and support
+
+```sh
+corepack enable
+pnpm install
+pnpm check
+```
+
+- Read the [contribution guide](https://github.com/cixiangtao/vite-plugin-tailwind-merge/blob/main/CONTRIBUTING.md) before opening a pull request.
+- Use [GitHub issues](https://github.com/cixiangtao/vite-plugin-tailwind-merge/issues) for reproducible bugs and focused feature proposals.
+- Report vulnerabilities privately through the repository's [Security page](https://github.com/cixiangtao/vite-plugin-tailwind-merge/security).
 
 ## License
 
