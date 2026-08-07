@@ -362,6 +362,9 @@ pnpm install
 pnpm check
 ```
 
+维护者发版统一使用受保护的 `release/vX.Y.Z` Pull Request，并遵循
+[RELEASING.md](../RELEASING.md) 中仅由 GitHub Actions 发布的流程。
+
 - 提交 Pull Request 前请阅读[中文贡献指南](../CONTRIBUTING.zh-CN.md)。
 - 可通过 [GitHub Issues](https://github.com/cixiangtao/vite-plugin-tailwind-merge/issues) 提交可复现
   的问题和边界明确的功能建议。
