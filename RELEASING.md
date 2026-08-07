@@ -1,36 +1,31 @@
 # Releasing vite-plugin-tailwind-merge
 
-GitHub Actions is the sole npm and GitHub Release publisher. release-it only
-prepares a version commit for a constrained release pull request.
+GitHub Actions is the only npm and GitHub Release publisher. Release Please automatically maintains
+the release pull request.
 
-## Contract
+## Normal flow
 
-- `package.json` owns the SemVer version.
-- Ordinary changes enter protected `main` through pull requests and the full
-  quality/compatibility matrix. Other open pull requests do not block release.
-- A release branch must be exactly `release/vX.Y.Z`; its PR may change only
-  `package.json` and `pnpm-lock.yaml`.
-- After that exact PR merges, `.github/workflows/release.yml` revalidates the
-  merge, builds and packs without write credentials, creates `vX.Y.Z`, publishes
-  with npm trusted publishing, and creates the GitHub Release.
-- Stable versions move npm `latest`; supported prereleases use their explicit
-  identifier as the dist-tag and are marked prerelease on GitHub.
+1. Merge ordinary changes into protected `main` through pull requests and the required quality and
+   compatibility checks. Other open pull requests do not block release.
+2. Release Please updates one automated release PR from a
+   `release-please--branches--main--...` branch. Conventional commit or squash-merge titles
+   determine the proposed SemVer version and `CHANGELOG.md` (`fix` = patch, `feat` = minor, and
+   `!` or `BREAKING CHANGE` = major).
+3. Review the release-only diff, proposed version, changelog, and CI, then merge that PR when ready.
+4. `.github/workflows/release.yml` revalidates the exact merged PR, builds and packs once, creates
+   `vX.Y.Z`, publishes through npm trusted publishing, and creates the matching GitHub Release.
+5. Verify the Action, tag target, GitHub Release, npm version/dist-tags, and a fresh public-package
+   install.
 
-## Prepare
+Stable versions move npm `latest`; supported prereleases use their explicit identifier as the npm
+dist-tag and are marked prerelease on GitHub. Do not bump versions, create tags, or publish locally.
 
-1. Synchronize `main` and merge every ordinary PR intended for the version.
-2. Create `release/vX.Y.Z` from that exact `main` head.
-3. Run `pnpm release:check` and `pnpm release:dry <increment>`.
-4. Run `pnpm release <increment>`, inspect the release-only diff, then push the
-   branch and open a PR into `main`.
+## Automation credentials and recovery
 
-release-it must not tag, push, publish npm, or create a GitHub Release locally.
+Define the Actions variable `RELEASE_APP_CLIENT_ID` and secret `RELEASE_APP_PRIVATE_KEY` for a
+GitHub App installed on this repository with Contents, Issues, and Pull requests read/write
+permissions. Its token lets required CI run unattended; PR checks created with the default
+`GITHUB_TOKEN` currently wait for separate workflow approval.
 
-## Publish and recover
-
-Merge the checked release PR, then verify the Action, tag target, GitHub Release,
-npm version/dist-tags, and a fresh public-package install.
-
-If delivery partially succeeds, inspect all existing surfaces before retrying
-the same merged-PR workflow. Never recover with local `npm publish` or a manual
-release tag.
+If delivery partially succeeds, inspect all existing surfaces before retrying the same merged-PR
+workflow. Never recover with local `npm publish` or a manual release tag.
