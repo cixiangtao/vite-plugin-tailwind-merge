@@ -383,6 +383,9 @@ pnpm install
 pnpm check
 ```
 
+Maintainer releases use a protected `release/vX.Y.Z` pull request and the
+Action-only process documented in [RELEASING.md](../RELEASING.md).
+
 - Read the [contribution guide](../CONTRIBUTING.md) before opening a pull request.
 - Use [GitHub issues](https://github.com/cixiangtao/vite-plugin-tailwind-merge/issues) for
   reproducible bugs and focused feature proposals.
