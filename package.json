@@ -1,6 +1,6 @@
 {
   "name": "vite-plugin-tailwind-merge",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Automatically resolve Tailwind CSS class conflicts in React-compatible JSX/TSX during Vite transforms.",
   "keywords": [
     "className",
