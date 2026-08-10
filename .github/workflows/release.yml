@@ -3,6 +3,12 @@ name: Release npm package
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      release_pr:
+        description: Merged Release Please PR number to resume
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -22,6 +28,8 @@ jobs:
       version: ${{ steps.release.outputs.version }}
       npm-tag: ${{ steps.release.outputs.npm-tag }}
       prerelease: ${{ steps.release.outputs.prerelease }}
+      sha: ${{ steps.release.outputs.sha }}
+      pr-number: ${{ steps.release.outputs.pr-number }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -30,12 +38,28 @@ jobs:
         id: release
         env:
           GH_TOKEN: ${{ github.token }}
+          RECOVERY_PR: ${{ inputs.release_pr || '' }}
           RELEASE_SHA: ${{ github.sha }}
         shell: bash
         run: |
           echo "release=false" >> "$GITHUB_OUTPUT"
-          pull_requests="$(gh api -H "Accept: application/vnd.github+json" \
-            "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_SHA}/pulls")"
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            if [[ ! "$RECOVERY_PR" =~ ^[1-9][0-9]*$ ]]; then
+              echo "A numeric merged release PR is required for recovery." >&2
+              exit 1
+            fi
+            pull_requests="$(gh api -H "Accept: application/vnd.github+json" \
+              "repos/${GITHUB_REPOSITORY}/pulls/${RECOVERY_PR}" | jq -c '[.]')"
+            RELEASE_SHA="$(jq -r '.[0].merge_commit_sha // empty' <<< "$pull_requests")"
+            if [[ -z "$RELEASE_SHA" ]]; then
+              echo "Release PR #${RECOVERY_PR} is not merged." >&2
+              exit 1
+            fi
+          else
+            pull_requests="$(gh api -H "Accept: application/vnd.github+json" \
+              "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_SHA}/pulls")"
+          fi
+          export RELEASE_SHA
           release_pr="$(jq -c '
             [.[]
               | select(.merged_at != null)
@@ -52,7 +76,11 @@ jobs:
           fi
 
           pr_number="$(jq -r '.number' <<< "$release_pr")"
-          base_sha="$(git rev-parse "${RELEASE_SHA}^")"
+          base_sha="$(jq -r '.base.sha' <<< "$release_pr")"
+          base_branch="$(jq -r '.base.ref' <<< "$release_pr")"
+          git fetch --force origin "$base_branch" --tags
+          git merge-base --is-ancestor "$RELEASE_SHA" "origin/${base_branch}"
+          git checkout --detach "$RELEASE_SHA"
           version="$(node -p 'require("./package.json").version')"
           tag="v${version}"
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
@@ -93,6 +121,8 @@ jobs:
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "npm-tag=${npm_tag}" >> "$GITHUB_OUTPUT"
           echo "prerelease=${prerelease}" >> "$GITHUB_OUTPUT"
+          echo "sha=${RELEASE_SHA}" >> "$GITHUB_OUTPUT"
+          echo "pr-number=${pr_number}" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build and pack npm artifact
@@ -102,6 +132,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           version: 10.34.5
@@ -129,9 +161,12 @@ jobs:
     permissions:
       contents: write
       id-token: write
+      issues: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.gate.outputs.sha }}
           fetch-depth: 0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -145,15 +180,16 @@ jobs:
           path: artifacts
       - name: Create release tag
         env:
+          RELEASE_SHA: ${{ needs.gate.outputs.sha }}
           TAG: ${{ needs.gate.outputs.tag }}
         run: |
           git fetch --force --tags origin
           if git rev-parse --verify --quiet "refs/tags/${TAG}" >/dev/null; then
-            test "$(git rev-list -n 1 "$TAG")" = "$GITHUB_SHA"
+            test "$(git rev-list -n 1 "$TAG")" = "$RELEASE_SHA"
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git tag -a "$TAG" -m "Release ${TAG}" "$GITHUB_SHA"
+            git tag -a "$TAG" -m "Release ${TAG}" "$RELEASE_SHA"
             git push origin "refs/tags/${TAG}"
           fi
       - name: Publish with npm trusted publishing
@@ -164,7 +200,7 @@ jobs:
           if npm view "vite-plugin-tailwind-merge@${VERSION}" version >/dev/null 2>&1; then
             echo "vite-plugin-tailwind-merge@${VERSION} already exists; skipping npm publish."
           else
-            npm publish artifacts/*.tgz --access public --tag "$NPM_TAG" --provenance
+            npm publish ./artifacts/*.tgz --access public --tag "$NPM_TAG" --provenance
           fi
       - name: Create or repair GitHub Release
         env:
@@ -186,11 +222,21 @@ jobs:
           test "$(npm view "vite-plugin-tailwind-merge@${VERSION}" version)" = "$VERSION"
           gh release view "$TAG" --json tagName,isDraft,isPrerelease,url
 
+      - name: Mark release PR complete
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ needs.gate.outputs.pr-number }}
+        run: |
+          if gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name' | grep -Fxq "autorelease: pending"; then
+            gh pr edit "$PR_NUMBER" --remove-label "autorelease: pending"
+          fi
+
   release-pr:
     name: Maintain automated release PR
     needs: [gate, publish]
     if: >-
       always() &&
+      github.event_name == 'push' &&
       needs.gate.result == 'success' &&
       (needs.gate.outputs.release != 'true' || needs.publish.result == 'success')
     runs-on: ubuntu-latest
