@@ -1,5 +1,7 @@
 # Releasing vite-plugin-tailwind-merge
 
+English | [简体中文](RELEASING.zh-CN.md)
+
 GitHub Actions is the only npm and GitHub Release publisher. Release Please automatically maintains
 the release pull request.
 
